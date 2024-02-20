@@ -13,6 +13,16 @@ MuJoCo physics engine: https://mujoco.readthedocs.io/en/stable/overview.html
 Gymnasium RL framework: https://gymnasium.farama.org/  
 Stable Baselines3 RL algorithms: https://stable-baselines3.readthedocs.io/en/master/index.html
 
+### Important Notice
+At the time of writing this, there is a bug in the mujoco rendering file. If you encounter the following error, you need to navigate to `mujoco_rendering.py` in the gymnasium package on your local file system and replace the instance of `solver_iter` with `nsolver_iter` as the error suggests, and save your change.
+
+This is the error:
+```
+AttributeError: 'mujoco._structs.MjData' object has no attribute 'solver_iter'. Did you mean: 'solver_niter'?
+```
+
+Since I use a virtual environment, the relative path to my `mujoco_rendering.py` file is `InchwormRL/.venv/lib/python3.10/site-packages/gymnasium/envs/mujoco/mujoco_rendering.py`.
+
 ## Setup
 
 Follow these instructions to set up the codebase locally.
