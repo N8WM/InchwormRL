@@ -21,7 +21,7 @@ Follow these instructions to set up the codebase locally.
 
 Run your favorite version of the git clone command on this repo. One version:
 
-`git clone https://github.com/N8WM/InchwormRL.git`
+```git clone https://github.com/N8WM/InchwormRL.git```
 
 ### 2. Install Python
 
@@ -31,7 +31,7 @@ This code was developed and run on Python `3.10.10`, but most likely any version
 
 We recommend doing this in a fresh Python virtual environment. Cd into the repo and run:
 
-`pip3 install -r requirements.txt`
+```pip install -r requirements.txt```
 
 ## Interacting With the Project
 
@@ -41,15 +41,15 @@ Our whole project has a single entry point, `run_environment.py`. You can contro
 
 Run an existing trained model (inchworm3.0_td3) and print evaluation data:
 
-`python3 run_environment.py -rsem inchworm3.0_td3`
+```python3 run_environment.py -rsem inchworm3.0_td3```
 
 Run an existing trained model (inchworm2.1_td3) on the old Inchworm environment and print evaluation data:
 
-`python3 run_environment.py -rsoem inchworm2.1_td3`
+```python3 run_environment.py -rsoem inchworm2.1_td3```
 
 Train a new model (inchworm3.1_td3) with 10,000,000 timesteps:
 
-`python3 run_environment.py -tm inchworm3.1_td3 -T 10000000`
+```python3 run_environment.py -tm inchworm3.1_td3 -T 10000000```
 
 ```
 usage: run_environment.py [-h] (-t | -r | -R | -c) [-m MODEL_NAME] [-a ALGORITHM] [-s] [-e] [-o]
