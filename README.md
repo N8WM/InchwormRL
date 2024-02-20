@@ -3,7 +3,7 @@
 By Nathan McCutchen  
 *Forked from [gwholland3/InchwormRL](https://github.com/gwholland3/InchwormRL) by Schuyler Fenton, Grant Holland, Nathan McCutchen, and Ishan Meher*
 
-This project is for CSC 580 at Cal Poly, taught by Dr. Franz Kurfess
+This project is rebooted for CSC 580 at Cal Poly, taught by Dr. Franz Kurfess
 
 ## External Resources
 
