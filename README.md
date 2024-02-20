@@ -1,8 +1,9 @@
 # InchwormRL
 
-By Schuyler Fenton, Grant Holland, Nathan McCutchen, and Ishan Meher.
+By Nathan McCutchen  
+*Forked from [gwholland3/InchwormRL](https://github.com/gwholland3/InchwormRL) by Schuyler Fenton, Grant Holland, Nathan McCutchen, and Ishan Meher*
 
-This project is for CSC 480 at Cal Poly, taught by Professor Rodrigo Canaan.
+This project is for CSC 580 at Cal Poly, taught by Dr. Franz Kurfess
 
 ## External Resources
 
@@ -20,7 +21,7 @@ Follow these instructions to set up the codebase locally.
 
 Run your favorite version of the git clone command on this repo. One version:
 
-`git clone git@github.com:gwholland3/InchwormRL.git`
+`git clone https://github.com/N8WM/InchwormRL.git`
 
 ### 2. Install Python
 
