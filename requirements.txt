@@ -1,6 +1,7 @@
 # Feel free to loosen some of these version requirements if they cause problems for whatever reason, we just locked them in at their latest versions
 argparse==1.4.0
 gymnasium[mujoco]==0.28.1
-keyboard==0.13.5
 numpy==1.24.3
 stable-baselines3[extra]==2.0.0a10  # Using an alpha version because the latest stable version doesn't include Gymnasium support
+pynput==1.7.6
+tqdm==4.66.2
