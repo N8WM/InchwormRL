@@ -1,7 +1,7 @@
 # InchwormRL
 
-By Nathan McCutchen  
-*Forked from [gwholland3/InchwormRL](https://github.com/gwholland3/InchwormRL) by Schuyler Fenton, Grant Holland, Nathan McCutchen, and Ishan Meher*
+By Nathan McCutchen
+_Forked from [gwholland3/InchwormRL](https://github.com/gwholland3/InchwormRL) by Schuyler Fenton, Grant Holland, Nathan McCutchen, and Ishan Meher_
 
 This project is rebooted for CSC 580 at Cal Poly, taught by Dr. Franz Kurfess
 
@@ -9,14 +9,16 @@ This project is rebooted for CSC 580 at Cal Poly, taught by Dr. Franz Kurfess
 
 We used the following external resources in our project.
 
-MuJoCo physics engine: https://mujoco.readthedocs.io/en/stable/overview.html  
-Gymnasium RL framework: https://gymnasium.farama.org/  
+MuJoCo physics engine: https://mujoco.readthedocs.io/en/stable/overview.html
+Gymnasium RL framework: https://gymnasium.farama.org/
 Stable Baselines3 RL algorithms: https://stable-baselines3.readthedocs.io/en/master/index.html
 
 ### Important Notice
+
 At the time of writing this, there is a bug in the mujoco rendering file. If you encounter the following error, you need to navigate to `mujoco_rendering.py` in the gymnasium package on your local file system and replace the instance of `solver_iter` with `nsolver_iter` as the error suggests, and save your change.
 
 This is the error:
+
 ```
 AttributeError: 'mujoco._structs.MjData' object has no attribute 'solver_iter'. Did you mean: 'solver_niter'?
 ```
@@ -31,7 +33,7 @@ Follow these instructions to set up the codebase locally.
 
 Run your favorite version of the git clone command on this repo. One version:
 
-```git clone https://github.com/N8WM/InchwormRL.git```
+`git clone https://github.com/N8WM/InchwormRL.git`
 
 ### 2. Install Python
 
@@ -41,25 +43,33 @@ This code was developed and run on Python `3.10.10`, but most likely any version
 
 We recommend doing this in a fresh Python virtual environment. Cd into the repo and run:
 
-```pip install -r requirements.txt```
+`pip install -r requirements.txt`
 
 ## Interacting With the Project
+
+**Working Model**
+
+As of 4/7/24, there is one successful model trained with the SAC algorithm in the `saved_models` directory. You can run this model with the following command:
+
+`python3 run_environment.py -rsem inchworm4.2_sac -a sac`
+
+**Other Options**
 
 Our whole project has a single entry point, `run_environment.py`. You can control the functionality via command-line arguments to Python script.
 
 ### Examples
 
-Run an existing trained model (inchworm3.0_td3) and print evaluation data:
+Run an existing trained model (inchworm4.2_sac) and print evaluation data:
 
-```python3 run_environment.py -rsem inchworm3.0_td3```
+`python3 run_environment.py -rsem inchworm4.2_sac -a sac`
 
 Run an existing trained model (inchworm2.1_td3) on the old Inchworm environment and print evaluation data:
 
-```python3 run_environment.py -rsoem inchworm2.1_td3```
+`python3 run_environment.py -rsoem inchworm2.1_td3`
 
-Train a new model (inchworm3.1_td3) with 10,000,000 timesteps:
+Train a new model (inchworm5.0_td3) with 10,000,000 timesteps:
 
-```python3 run_environment.py -tm inchworm3.1_td3 -T 10000000```
+`python3 run_environment.py -tm inchworm5.0_td3 -T 10000000`
 
 ```
 usage: run_environment.py [-h] (-t | -r | -R | -c) [-m MODEL_NAME] [-a ALGORITHM] [-s] [-e] [-o]
