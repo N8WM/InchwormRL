@@ -155,6 +155,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         healthy_reward=1.0,
         terminate_when_unhealthy=True,
         reset_noise_scale=0.1,
+        msr_eta: float | None = 1.5,
         **kwargs,
     ):
         if old_model:
@@ -172,6 +173,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             healthy_reward,
             terminate_when_unhealthy,
             reset_noise_scale,
+            msr_eta,
             **kwargs,
         )
 
@@ -190,6 +192,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         self._reset_noise_scale = reset_noise_scale
 
+        self._msr_eta = msr_eta
+
         obs_shape = 12
 
         observation_space = Box(
@@ -198,6 +202,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         # Indicates whether the inchworm has contacted the ground yet
         self.has_contacted_ground = False
+
+        self._prev_reward: float | None = None
 
         # Evaluation records
         if self._evals:
@@ -257,14 +263,12 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         for i in range(self.data.ncon):
             contact = self.data.contact[i]
-            if (contact.geom1 == left_gripper_id or
-                    contact.geom2 == left_gripper_id):
+            if contact.geom1 == left_gripper_id or contact.geom2 == left_gripper_id:
                 grounded = True
-            if (contact.geom1 == right_gripper_id or
-                    contact.geom2 == right_gripper_id):
+            if contact.geom1 == right_gripper_id or contact.geom2 == right_gripper_id:
                 grounded = True
         return grounded
-    
+
     @property
     def is_upside_down(self):
         """
@@ -277,17 +281,23 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     @property
     def healthy_reward(self):
         return (
-            float(
-                self.is_healthy or self._terminate_when_unhealthy
-            ) * self._healthy_reward
+            float(self.is_healthy or self._terminate_when_unhealthy)
+            * self._healthy_reward
         )
+
+    @staticmethod
+    def positional_reward(x: float, c: float = 50.0, d: float = 0.05) -> float:
+        """
+        Reward for being at a certain position
+        """
+        return c * np.tanh(d * x)
 
     def control_cost(self, action):
         """
         Control cost is a penalty for applying large forces to the hinge motors
         (the first three values of the action)
         """
-        control_cost = self._ctrl_cost_weight * np.sum(np.square(action[:3]))
+        control_cost: float = self._ctrl_cost_weight * np.sum(np.square(action[:3]))
         return control_cost
 
     def ungrounded_cost(self):
@@ -295,7 +305,9 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         Cost for being ungrounded
         """
         self.has_contacted_ground = self.has_contacted_ground or self.is_grounded
-        grounded = not self.has_contacted_ground or self.is_grounded  # Once grounded, must stay grounded
+        grounded = (
+            not self.has_contacted_ground or self.is_grounded
+        )  # Once grounded, must stay grounded
         ungrounded_cost = self._ungrounded_cost_weight * float(not grounded)
         return ungrounded_cost
 
@@ -330,19 +342,25 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         x_velocity = (xpos_after - xpos_before) / self.dt
 
         # Calculate positive rewards
-        forward_reward = x_velocity
+        positional_reward = InchwormEnv.positional_reward(xpos_after, d=0.05)
+        forward_reward = x_velocity * 3
         healthy_reward = self.healthy_reward
 
-        rewards = forward_reward + healthy_reward
+        rewards = positional_reward + forward_reward + healthy_reward
 
         # Calculate penalties
         ctrl_cost = self.control_cost(action)
         ungrounded_cost = self.ungrounded_cost()
 
-        costs = ctrl_cost + ungrounded_cost
+        costs = ungrounded_cost  # + ctrl_cost
 
         # Calculate total reward to give to the agent
         reward = rewards - costs
+        # Conditionally apply MSR algorithm to reward
+        if self._msr_eta is not None:
+            reward = InchwormEnv._msr(
+                self._prev_reward or reward, reward, self._msr_eta
+            )
         self.displacement = max(self.displacement, xpos_after)
 
         terminated = self.terminated
@@ -358,7 +376,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             "reward_survive": healthy_reward,
             "penalty_ctrl": ctrl_cost,
             "x_position": xpos_after,
-            "x_velocity": x_velocity
+            "x_velocity": x_velocity,
         }
 
         # Render the current simulation frame
@@ -374,6 +392,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
             info["evals"] = self._eval_avgs
 
+        self._prev_reward = reward
+
         return observation, reward, terminated, truncated, info
 
     def _get_obs(self):
@@ -382,6 +402,20 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         velocity = self.data.qvel.flat.copy()
 
         return np.concatenate((position, velocity))
+
+    @staticmethod
+    def _msr(r1: float, r2: float, eta: float) -> float:
+        sigma = 0.0001
+        r1p = r1 + sigma
+        r2p = r2 + sigma
+        rho = (r2p - r1p) / min(abs(r2p), abs(r2p))
+        lambda_ = np.sign(r2 - r1)
+        x = rho + lambda_
+        f = np.arctan(x * (np.pi / 2) * (1 / eta))
+        msr = r2 + (f - lambda_) * abs(r2)
+        if -eta < x < eta:
+            return r2
+        return msr
 
     def reset_model(self):
         # Low and high ends of the random noise that gets added to the initial positions and velocities
@@ -394,36 +428,43 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         )
         qvel = (
             self.init_qvel
-            + self._reset_noise_scale
-            * self.np_random.standard_normal(self.model.nv)
+            + self._reset_noise_scale * self.np_random.standard_normal(self.model.nv)
         )
         self.set_state(qpos, qvel)
 
+        self._prev_reward = None
+
         if self._evals and len(self._evals_reward_record) > 100:
-            ep_eval = InchwormEnv.calc_evals({
-                "reward_avg": self._evals_reward_record,
-                "velocity_avg": self._evals_velocity_record,
-                "motor_input_avg": self._evals_motor_input_record,
-                "ground_contact_freq": self._evals_ground_contact_record,
-                "upside_down_freq": self._evals_upside_down_record
-            })
+            ep_eval = InchwormEnv.calc_evals(
+                {
+                    "reward_avg": self._evals_reward_record,
+                    "velocity_avg": self._evals_velocity_record,
+                    "motor_input_avg": self._evals_motor_input_record,
+                    "ground_contact_freq": self._evals_ground_contact_record,
+                    "upside_down_freq": self._evals_upside_down_record,
+                }
+            )
             InchwormEnv.print_evals(ep_eval, "Episode Evaluation")
 
             # Save averages and frequencies to lists
             self._evals_reward_avg_record.append(ep_eval["reward_avg"])
             self._evals_velocity_avg_record.append(ep_eval["velocity_avg"])
             self._evals_motor_input_avg_record.append(ep_eval["motor_input_avg"])
-            self._evals_ground_contact_freq_record.append(ep_eval["ground_contact_freq"])
+            self._evals_ground_contact_freq_record.append(
+                ep_eval["ground_contact_freq"]
+            )
             self._evals_upside_down_freq_record.append(ep_eval["upside_down_freq"])
 
             # Calculate the average of the averages and the average of the frequencies
-            self._eval_avgs = InchwormEnv.calc_evals({
-                "reward_avg": self._evals_reward_avg_record,
-                "velocity_avg": self._evals_velocity_avg_record,
-                "motor_input_avg": self._evals_motor_input_avg_record,
-                "ground_contact_freq": self._evals_ground_contact_freq_record,
-                "upside_down_freq": self._evals_upside_down_freq_record
-            })
+            self._eval_avgs = InchwormEnv.calc_evals(
+                {
+                    "reward_avg": self._evals_reward_avg_record,
+                    "velocity_avg": self._evals_velocity_avg_record,
+                    "motor_input_avg": self._evals_motor_input_avg_record,
+                    "ground_contact_freq": self._evals_ground_contact_freq_record,
+                    "upside_down_freq": self._evals_upside_down_freq_record,
+                }
+            )
 
             # Reset the evaluation statistics
             self._evals_reward_record = []
@@ -440,24 +481,26 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         observation = self._get_obs()
 
         return observation
-    
+
     @staticmethod
     def calc_evals(evals) -> dict:
         return {
             "reward_avg": np.mean(evals["reward_avg"]),
             "velocity_avg": np.mean(evals["velocity_avg"]),
             "motor_input_avg": np.mean(evals["motor_input_avg"]),
-            "ground_contact_freq": np.sum(evals["ground_contact_freq"]) / len(evals["ground_contact_freq"]),
-            "upside_down_freq": np.sum(evals["upside_down_freq"]) / len(evals["upside_down_freq"])
+            "ground_contact_freq": np.sum(evals["ground_contact_freq"])
+            / len(evals["ground_contact_freq"]),
+            "upside_down_freq": np.sum(evals["upside_down_freq"])
+            / len(evals["upside_down_freq"]),
         }
-    
+
     @staticmethod
     def print_evals(evals: dict, label: str):
         print(
-            f"{label}\n" +
-            f"\treward_avg:          {evals['reward_avg']}\n" +
-            f"\tvelocity_avg:        {evals['velocity_avg']}\n" +
-            f"\tmotor_input_avg:     {evals['motor_input_avg']}\n" +
-            f"\tground_contact_freq: {evals['ground_contact_freq']}\n" +
-            f"\tupside_down_freq:    {evals['upside_down_freq']}\n"
+            f"\n{label}\n"
+            + f"\treward_avg:          {evals['reward_avg']}\n"
+            + f"\tvelocity_avg:        {evals['velocity_avg']}\n"
+            + f"\tmotor_input_avg:     {evals['motor_input_avg']}\n"
+            + f"\tground_contact_freq: {evals['ground_contact_freq']}\n"
+            + f"\tupside_down_freq:    {evals['upside_down_freq']}\n"
         )

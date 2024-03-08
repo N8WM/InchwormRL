@@ -125,7 +125,7 @@
 
             <!-- This joint allows the fourth segment to hinge off the third -->
             <joint name="right_joint" class="connector_joint" pos="-0.5 0 0" range="-90 0" />
-            
+
           </body>
         </body>
       </body>
