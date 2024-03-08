@@ -1,6 +1,6 @@
 # InchwormRL
 
-By Nathan McCutchen
+By Nathan McCutchen  
 _Forked from [gwholland3/InchwormRL](https://github.com/gwholland3/InchwormRL) by Schuyler Fenton, Grant Holland, Nathan McCutchen, and Ishan Meher_
 
 This project is rebooted for CSC 580 at Cal Poly, taught by Dr. Franz Kurfess
@@ -11,9 +11,9 @@ This project is rebooted for CSC 580 at Cal Poly, taught by Dr. Franz Kurfess
 
 We used the following external resources in our project.
 
-MuJoCo physics engine: https://mujoco.readthedocs.io/en/stable/overview.html
-Gymnasium RL framework: https://gymnasium.farama.org/
-Stable Baselines3 RL algorithms: https://stable-baselines3.readthedocs.io/en/master/index.html
+MuJoCo physics engine: https://mujoco.readthedocs.io/en/stable/overview.html  
+Gymnasium RL framework: https://gymnasium.farama.org/  
+Stable Baselines3 RL algorithms: https://stable-baselines3.readthedocs.io/en/master/index.html  
 
 ### Important Notice
 
